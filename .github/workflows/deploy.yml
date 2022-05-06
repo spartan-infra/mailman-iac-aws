@@ -1,0 +1,42 @@
+name: Terraform Deploy Pipeline
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  setup-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Generate Matrix Combinations"
+        id: setup-matrix-array
+        run: |
+          echo Environment variable = "$VAR1"
+          echo "::set-output name=matrix-array::[{\"region\":\""$VAR1"\"}]"
+        env:
+          VAR1: ${{ secrets.DEPLOY_DEV_AWS_EAST_1 }}
+    outputs:
+      matrix-array: ${{ steps.setup-matrix-array.outputs.matrix-array }}
+  deploy:
+    runs-on: ubuntu-latest
+    needs:
+      - setup-matrix
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.setup-matrix.outputs.matrix-array) }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: List Directory
+        run: ls -lia
+      - name: Print Environment secret
+        run: echo AWS Region Secret ${{ matrix.region }}
